@@ -4,6 +4,8 @@ Vision module for face detection and recognition
 import cv2
 import threading
 import time
+import numpy as np
+import face_recognition
 from datetime import datetime, timedelta
 from config import Config
 from modules.database_module import DatabaseManager
@@ -12,7 +14,6 @@ class VisionSystem:
     """Handles real-time face detection and recognition"""
     
     def __init__(self, recognizer=None):
-        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         self.recognizer = recognizer
         self.camera = None
         self.is_running = False
@@ -54,36 +55,44 @@ class VisionSystem:
     def detect_faces(self, frame):
         """
         Detect faces in frame
-        Returns: list of (x, y, w, h) tuples
+        Returns: (face_locations, rgb_frame)
+        face_locations format: (top, right, bottom, left)
         """
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = self.face_cascade.detectMultiScale(
-            gray,
-            scaleFactor=Config.FACE_DETECTION_SCALE_FACTOR,
-            minNeighbors=Config.FACE_DETECTION_MIN_NEIGHBORS,
-            minSize=Config.FACE_DETECTION_MIN_SIZE
-        )
-        return faces, gray
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_frame, model='hog')
+        return face_locations, rgb_frame
     
-    def recognize_face(self, gray, face_coords):
+    def recognize_face(self, rgb_frame, face_location):
         """
         Recognize face using trained model
         Returns: (employee_id, confidence) or (None, None)
         """
         if self.recognizer is None:
             return None, None
-        
-        x, y, w, h = face_coords
-        face_roi = gray[y:y+h, x:x+w]
-        
+
         try:
-            employee_id, confidence = self.recognizer.predict(face_roi)
-            
-            # Lower confidence value means better match
-            if confidence < Config.RECOGNITION_CONFIDENCE_THRESHOLD:
-                return employee_id, confidence
-            else:
-                return None, confidence
+            face_encs = face_recognition.face_encodings(rgb_frame, [face_location])
+            if not face_encs:
+                return None, None
+
+            face_encoding = face_encs[0]
+            known_encodings = self.recognizer.get('encodings') if isinstance(self.recognizer, dict) else None
+            known_labels = self.recognizer.get('labels') if isinstance(self.recognizer, dict) else None
+
+            if known_encodings is None or known_labels is None or len(known_encodings) == 0:
+                return None, None
+
+            distances = face_recognition.face_distance(known_encodings, face_encoding)
+            if distances.size == 0:
+                return None, None
+
+            best_idx = int(np.argmin(distances))
+            best_distance = float(distances[best_idx])
+
+            if best_distance <= getattr(Config, 'FACE_RECOGNITION_TOLERANCE', 0.6):
+                return int(known_labels[best_idx]), best_distance
+
+            return None, best_distance
         except Exception as e:
             print(f"Recognition error: {e}")
             return None, None
@@ -156,13 +165,13 @@ class VisionSystem:
             return None
         
         # Detect faces
-        faces, gray = self.detect_faces(frame)
+        face_locations, rgb_frame = self.detect_faces(frame)
         
         messages = []
         
-        for (x, y, w, h) in faces:
+        for (top, right, bottom, left) in face_locations:
             # Recognize face
-            employee_id, confidence = self.recognize_face(gray, (x, y, w, h))
+            employee_id, confidence = self.recognize_face(rgb_frame, (top, right, bottom, left))
             
             if employee_id is not None:
                 # Get employee details
@@ -175,21 +184,21 @@ class VisionSystem:
                         messages.append(message)
                     
                     # Draw green rectangle for recognized face
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
                     
                     # Display name and confidence
-                    label = f"{employee.name} ({int(confidence)})"
-                    cv2.putText(frame, label, (x, y-10),
+                    label = f"{employee.name} ({confidence:.2f})"
+                    cv2.putText(frame, label, (left, top-10),
                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                 else:
                     # Unknown employee ID
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
-                    cv2.putText(frame, "Unknown", (x, y-10),
+                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+                    cv2.putText(frame, "Unknown", (left, top-10),
                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
             else:
                 # Unrecognized face
-                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
-                cv2.putText(frame, "Unknown", (x, y-10),
+                cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+                cv2.putText(frame, "Unknown", (left, top-10),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
         
         # Add timestamp

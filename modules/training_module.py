@@ -4,6 +4,8 @@ Training module for face recognition model
 import cv2
 import os
 import numpy as np
+import pickle
+import face_recognition
 from config import Config
 
 class FaceTrainer:
@@ -11,8 +13,8 @@ class FaceTrainer:
     
     def __init__(self):
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        self.recognizer = cv2.face.LBPHFaceRecognizer_create()
-        self.model_path = os.path.join(Config.TRAINED_MODELS_FOLDER, 'face_recognizer.yml')
+        self.recognizer = None
+        self.model_path = os.path.join(Config.TRAINED_MODELS_FOLDER, 'face_encodings.pkl')
     
     def collect_face_samples(self, employee_id, employee_name, num_samples=50):
         """
@@ -52,7 +54,7 @@ class FaceTrainer:
                 for (x, y, w, h) in faces:
                     count += 1
                     # Save face image
-                    face_img = gray[y:y+h, x:x+w]
+                    face_img = frame[y:y+h, x:x+w]
                     face_path = os.path.join(employee_folder, f"face_{count}.jpg")
                     cv2.imwrite(face_path, face_img)
                     
@@ -89,7 +91,7 @@ class FaceTrainer:
         Prepare training data from all employee face folders
         Returns: faces array, labels array, and label-to-name mapping
         """
-        faces = []
+        encodings = []
         labels = []
         label_names = {}
         
@@ -113,14 +115,20 @@ class FaceTrainer:
                         continue
                     
                     image_path = os.path.join(folder_path, image_name)
-                    face_img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-                    
-                    if face_img is not None:
-                        faces.append(face_img)
-                        labels.append(employee_id)
-                        label_names[employee_id] = folder_name
+                    bgr_img = cv2.imread(image_path)
+                    if bgr_img is None:
+                        continue
+
+                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+                    face_encs = face_recognition.face_encodings(rgb_img)
+                    if not face_encs:
+                        continue
+
+                    encodings.append(face_encs[0])
+                    labels.append(employee_id)
+                    label_names[employee_id] = folder_name
             
-            return faces, labels, label_names
+            return encodings, labels, label_names
             
         except Exception as e:
             print(f"Error preparing training data: {e}")
@@ -132,22 +140,27 @@ class FaceTrainer:
         Returns: dict with success status and message
         """
         try:
-            faces, labels, label_names = self.prepare_training_data()
+            encodings, labels, label_names = self.prepare_training_data()
             
-            if len(faces) == 0:
+            if len(encodings) == 0:
                 return {'success': False, 'error': 'No training data found'}
             
-            print(f"Training model with {len(faces)} face samples from {len(set(labels))} employees...")
-            
-            # Train the recognizer
-            self.recognizer.train(faces, np.array(labels))
-            
-            # Save the model
-            self.recognizer.save(self.model_path)
+            print(f"Training model with {len(encodings)} face samples from {len(set(labels))} employees...")
+
+            data = {
+                'encodings': np.array(encodings),
+                'labels': np.array(labels),
+                'label_names': label_names
+            }
+
+            with open(self.model_path, 'wb') as f:
+                pickle.dump(data, f)
+
+            self.recognizer = data
             
             return {
                 'success': True,
-                'message': f'Model trained successfully with {len(faces)} samples',
+                'message': f'Model trained successfully with {len(encodings)} samples',
                 'num_employees': len(set(labels)),
                 'model_path': self.model_path
             }
@@ -162,7 +175,8 @@ class FaceTrainer:
         """
         try:
             if os.path.exists(self.model_path):
-                self.recognizer.read(self.model_path)
+                with open(self.model_path, 'rb') as f:
+                    self.recognizer = pickle.load(f)
                 return True
             return False
         except Exception as e:

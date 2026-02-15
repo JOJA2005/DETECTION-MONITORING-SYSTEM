@@ -33,6 +33,7 @@ class Config:
     
     # Recognition settings
     RECOGNITION_CONFIDENCE_THRESHOLD = 70  # Lower is more confident (0-100)
+    FACE_RECOGNITION_TOLERANCE = 0.6
     ENTRY_EXIT_COOLDOWN_MINUTES = 5  # Prevent duplicate entries within this time
     
     # Training settings
