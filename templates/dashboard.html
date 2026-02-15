@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Smart Office Monitoring{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Live Monitoring Dashboard</h1>
+    <div class="camera-controls">
+        <button id="startMonitoring" class="btn btn-success">▶ Start Monitoring</button>
+        <button id="stopMonitoring" class="btn btn-danger">⏹ Stop Monitoring</button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+            <h3>{{ stats.total_employees }}</h3>
+            <p>Total Employees</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+            <h3 id="currentlyInside">{{ stats.currently_inside }}</h3>
+            <p>Currently Inside</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+            <h3>{{ stats.today_entries }}</h3>
+            <p>Today's Entries</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="content-grid">
+    <!-- Live Camera Feed -->
+    <div class="card video-card">
+        <div class="card-header">
+            <h2>📹 Live Camera Feed</h2>
+        </div>
+        <div class="card-body">
+            <img id="videoFeed" src="" alt="Camera feed will appear here" class="video-feed">
+            <p class="video-status" id="videoStatus">Camera is stopped. Click "Start Monitoring" to begin.</p>
+        </div>
+    </div>
+
+    <!-- Current Attendance -->
+    <div class="card">
+        <div class="card-header">
+            <h2>👤 Currently Inside Office</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-container">
+                <table class="data-table" id="currentAttendanceTable">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Entry Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if current_attendance %}
+                        {% for record in current_attendance %}
+                        <tr>
+                            <td>{{ record.employee_name }}</td>
+                            <td>{{ record.department }}</td>
+                            <td>{{ record.entry_time }}</td>
+                            <td><span class="badge badge-{{ record.action }}">{{ record.action }}</span></td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="no-data">No employees currently inside</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header">
+        <h2>📋 Recent Activity</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="data-table" id="recentActivityTable">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Entry Time</th>
+                        <th>Exit Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_activity %}
+                    {% for record in recent_activity %}
+                    <tr>
+                        <td>{{ record.employee_name }}</td>
+                        <td>{{ record.department }}</td>
+                        <td>{{ record.entry_time }}</td>
+                        <td>{{ record.exit_time or 'N/A' }}</td>
+                        <td><span class="badge badge-{{ record.status }}">{{ record.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="no-data">No recent activity</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh current attendance every 3 seconds
+    setInterval(updateCurrentAttendance, 3000);
+
+    // Camera control buttons
+    document.getElementById('startMonitoring').addEventListener('click', startMonitoring);
+    document.getElementById('stopMonitoring').addEventListener('click', stopMonitoring);
+</script>
+{% endblock %}

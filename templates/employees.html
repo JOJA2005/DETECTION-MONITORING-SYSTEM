@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Employees - Smart Office Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Employee Management</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('register_employee') }}" class="btn btn-primary">➕ Add Employee</a>
+        <button id="trainModelBtn" class="btn btn-success">🎓 Train Model</button>
+    </div>
+</div>
+
+<div id="trainingStatus" class="alert" style="display: none;"></div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>👥 Registered Employees</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Registered On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if employees %}
+                    {% for employee in employees %}
+                    <tr>
+                        <td>{{ employee.id }}</td>
+                        <td>{{ employee.name }}</td>
+                        <td>{{ employee.department }}</td>
+                        <td>{{ employee.created_at }}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm"
+                                onclick="deleteEmployee({{ employee.id }}, '{{ employee.name }}')">
+                                🗑 Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="no-data">No employees registered yet</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Train model button
+    document.getElementById('trainModelBtn').addEventListener('click', trainModel);
+
+    function deleteEmployee(employeeId, employeeName) {
+        if (confirm(`Are you sure you want to delete ${employeeName}?`)) {
+            fetch(`/api/delete_employee/${employeeId}`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Employee deleted successfully');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+        }
+    }
+
+    function trainModel() {
+        const statusDiv = document.getElementById('trainingStatus');
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'alert alert-info';
+        statusDiv.textContent = 'Training model... Please wait.';
+
+        fetch('/api/train_model', {
+            method: 'POST'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.className = 'alert alert-success';
+                    statusDiv.textContent = data.message;
+                } else {
+                    statusDiv.className = 'alert alert-error';
+                    statusDiv.textContent = 'Error: ' + data.error;
+                }
+            });
+    }
+</script>
+{% endblock %}

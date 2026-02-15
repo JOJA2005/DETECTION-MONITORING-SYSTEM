@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Smart Office Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🏢 Smart Office Monitor</h1>
+                <p>AI-Powered Attendance System</p>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}" class="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Login</button>
+            </form>
+
+            <div class="login-footer">
+                <p>Default credentials: admin / admin123</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

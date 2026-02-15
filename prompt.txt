@@ -1,0 +1,108 @@
+Create a full-stack AI-powered Smart Office Monitoring System using Flask
+
+The system must use computer vision (cv2) to automatically detect and recognize employee faces through a live camera feed and monitor their entry, exit, and basic actions in real time.
+
+CORE FEATURES:
+
+1. Face Detection and Recognition:
+- Use OpenCV-based face detection.
+- Implement a reliable face recognition method such as LBPH or a pretrained face recognition model.
+- Allow registration of new employees by capturing multiple face images.
+- Train the model and store facial data locally.
+
+2. Live Camera Monitoring:
+- Continuously capture video from a webcam.
+- Detect faces in real time.
+- When a known face appears, display:
+  "<Employee Name> has entered the office"
+  or
+  "<Employee Name> has exited the office"
+
+3. Entry and Exit Logic:
+- Automatically determine entry vs exit using timestamps and last-seen status.
+- Prevent duplicate attendance within short intervals.
+- Maintain accurate time tracking.
+
+4. Action Detection (Basic):
+- Detect simple actions such as:
+  - Sitting
+  - Standing
+  - Walking
+  - Idle
+- Use pose estimation or lightweight action recognition.
+- Store detected actions with timestamps.
+
+5. Database:
+- Use SQLite for simplicity.
+- Create structured tables:
+
+Employees:
+- id
+- name
+- department
+- face_data_path
+
+Attendance:
+- id
+- employee_id
+- entry_time
+- exit_time
+- action
+- date
+
+6. Web Dashboard:
+Build a clean html dashboard that includes:
+
+Admin Features:
+- Add / remove employees
+- Upload face data
+- Retrain model button
+
+Monitoring Panel:
+- Live attendance table
+- Current employees inside office
+- Activity history
+
+Reports:
+- Daily attendance
+- Employee work duration
+- Search and filter
+- Export to CSV
+
+7. Architecture:
+Separate the system into modules:
+
+- vision_module → handles camera, detection, recognition
+- action_module → detects posture/actions
+- database_module → manages SQLite operations
+- web_dashboard → frontend
+- training_module → trains face recognition model
+
+Ensure the camera system updates the database in real time so the dashboard reflects changes instantly.
+
+8. UI Requirements:
+- Minimal
+- Professional
+- Dark or neutral theme
+- Easy navigation
+- Table-based monitoring
+
+9. Performance:
+- Optimize for real-time detection.
+- Avoid heavy models that slow down webcam processing.
+- Ensure the system runs smoothly on a standard laptop.
+
+10. Security (Basic):
+- Admin login required.
+- Protect employee data.
+
+GOAL:
+The final system should look like an industry-level smart office solution rather than a basic student project.
+
+Provide:
+- Folder structure
+- Dependencies
+- Installation steps
+- Modular code
+- Comments for readability
+- Scalability suggestions

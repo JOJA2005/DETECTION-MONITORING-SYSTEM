@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Register Employee - Smart Office Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Register New Employee</h1>
+    <a href="{{ url_for('employees') }}" class="btn btn-secondary">← Back to Employees</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Employee Information</h2>
+    </div>
+    <div class="card-body">
+        <form id="registerForm" class="form">
+            <div class="form-group">
+                <label for="name">Full Name *</label>
+                <input type="text" id="name" name="name" required placeholder="Enter employee name">
+            </div>
+
+            <div class="form-group">
+                <label for="department">Department *</label>
+                <select id="department" name="department" required>
+                    <option value="">Select Department</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="HR">Human Resources</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Operations">Operations</option>
+                    <option value="IT">IT Support</option>
+                    <option value="Management">Management</option>
+                </select>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>📸 Face Capture Instructions:</strong>
+                <ul>
+                    <li>When you click "Register & Capture Face", your camera will open</li>
+                    <li>Position your face in front of the camera</li>
+                    <li>The system will automatically capture 50 face samples</li>
+                    <li>Move your head slightly during capture for better recognition</li>
+                    <li>Press 'Q' to quit if needed</li>
+                </ul>
+            </div>
+
+            <div id="registrationStatus" class="alert" style="display: none;"></div>
+
+            <button type="submit" class="btn btn-primary btn-block">📸 Register & Capture Face</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const department = document.getElementById('department').value;
+        const statusDiv = document.getElementById('registrationStatus');
+
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'alert alert-info';
+        statusDiv.textContent = 'Registering employee and capturing face samples... Please wait.';
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('department', department);
+
+        fetch('/api/add_employee', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.className = 'alert alert-success';
+                    statusDiv.textContent = data.message + ' - Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = '/employees';
+                    }, 2000);
+                } else {
+                    statusDiv.className = 'alert alert-error';
+                    statusDiv.textContent = 'Error: ' + data.error;
+                }
+            })
+            .catch(error => {
+                statusDiv.className = 'alert alert-error';
+                statusDiv.textContent = 'Error: ' + error.message;
+            });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Smart Office Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Attendance Reports & Analytics</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>📊 Daily Attendance Report</h2>
+        <div class="report-controls">
+            <input type="date" id="reportDate" class="form-control" value="{{ today }}">
+            <button id="loadReport" class="btn btn-primary">Load Report</button>
+            <button id="exportCSV" class="btn btn-success">📥 Export CSV</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="data-table" id="reportTable">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Entry Time</th>
+                        <th>Exit Time</th>
+                        <th>Work Duration</th>
+                        <th>Action</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7" class="no-data">Select a date and click "Load Report"</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('reportDate').value = today;
+
+    // Load report on page load
+    loadReport();
+
+    // Event listeners
+    document.getElementById('loadReport').addEventListener('click', loadReport);
+    document.getElementById('exportCSV').addEventListener('click', exportCSV);
+
+    function loadReport() {
+        const date = document.getElementById('reportDate').value;
+
+        fetch(`/api/daily_report?date=${date}`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.querySelector('#reportTable tbody');
+                tbody.innerHTML = '';
+
+                if (data.success && data.data.length > 0) {
+                    data.data.forEach(record => {
+                        const row = `
+                        <tr>
+                            <td>${record.employee_name}</td>
+                            <td>${record.department}</td>
+                            <td>${record.entry_time}</td>
+                            <td>${record.exit_time || 'N/A'}</td>
+                            <td>${record.work_duration || 'N/A'}</td>
+                            <td><span class="badge badge-${record.action}">${record.action}</span></td>
+                            <td><span class="badge badge-${record.status}">${record.status}</span></td>
+                        </tr>
+                    `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="no-data">No attendance records for this date</td></tr>';
+                }
+            });
+    }
+
+    function exportCSV() {
+        const date = document.getElementById('reportDate').value;
+        window.location.href = `/api/export_csv?date=${date}`;
+    }
+</script>
+{% endblock %}
