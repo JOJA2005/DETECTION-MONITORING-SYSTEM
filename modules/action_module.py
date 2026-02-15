@@ -9,8 +9,17 @@ class ActionDetector:
     """Detects basic actions using MediaPipe Pose"""
     
     def __init__(self):
-        self.mp_pose = mp.solutions.pose
-        self.mp_drawing = mp.solutions.drawing_utils
+        # Handle different MediaPipe versions
+        try:
+            # Try the older solutions API first
+            self.mp_pose = mp.solutions.pose
+            self.mp_drawing = mp.solutions.drawing_utils
+        except AttributeError:
+            # Fall back to newer API structure
+            import mediapipe.solutions as solutions
+            self.mp_pose = solutions.pose
+            self.mp_drawing = solutions.drawing_utils
+        
         self.pose = self.mp_pose.Pose(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5
